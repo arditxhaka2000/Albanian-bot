@@ -326,6 +326,46 @@
       ],
       "id": "bcabc9c3-e4ca-4db9-b0f0-0a9b45bc85fe",
       "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json[\"isVerification\"] }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "Check Verification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -400
+      ],
+      "id": "if-verification"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json[\"isVerification\"] }}",
+              "operation": "isTrue"
+            }
+          ]
+        }
+      },
+      "name": "Check Verification",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        -400
+      ],
+      "id": "check-verification-node"
     }
   ],
   "pinData": {},
@@ -353,6 +393,11 @@
         [
           {
             "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Verification",
             "type": "main",
             "index": 0
           }
@@ -488,6 +533,18 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Check Verification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },
