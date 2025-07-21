@@ -1,10 +1,8 @@
 {
-  "name": "My workflow",
   "nodes": [
     {
       "parameters": {
-        "multipleMethods": true,
-        "path": " albanian-bot",
+        "path": "albanian-bot",
         "responseMode": "responseNode",
         "options": {
           "rawBody": true
@@ -12,551 +10,146 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        0,
-        0
-      ],
-      "id": "5c0ba2bc-41db-4802-90d4-2297fa27e150",
-      "name": "Webhook",
-      "webhookId": "fe625e3d-a2d7-4393-a676-98e7ace12dc5"
+      "position": [0, 0],
+      "name": "Webhook"
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\n\n// Handle Facebook verification challenge\nif (input['hub.mode'] === 'subscribe' && input['hub.verify_token'] === 'albanian_bot_verify') {\n  return [{ \n    challenge: input['hub.challenge'],\n    isVerification: true \n  }];\n}\n\n// Normal message processing\nlet message = '';\nlet senderId = '';\n\ntry {\n  message = input.entry[0].messaging[0].message.text.toLowerCase();\n  senderId = input.entry[0].messaging[0].sender.id;\n} catch (error) {\n  return [{ error: 'Invalid message format' }];\n}\n\n// Albanian keyword detection\nfunction analyzeAlbanianMessage(text) {\n  const priceKeywords = ['sa kushton', 'çmimi', 'kushton'];\n  const orderKeywords = ['dua të porosis', 'porosi'];\n  const confirmKeywords = ['po', 'dakord', 'pranoj'];\n  \n  if (priceKeywords.some(keyword => text.includes(keyword))) {\n    const product = extractProduct(text);\n    return { intent: 'PRICE_INQUIRY', product, senderId, originalMessage: text };\n  }\n  \n  if (orderKeywords.some(keyword => text.includes(keyword))) {\n    return { intent: 'ORDER_REQUEST', senderId, originalMessage: text };\n  }\n  \n  if (confirmKeywords.some(keyword => text.includes(keyword))) {\n    return { intent: 'CONFIRMATION', senderId, originalMessage: text };\n  }\n  \n  if (text.includes(',') && (text.includes('044') || text.includes('045'))) {\n    const details = parseDeliveryInfo(text);\n    return { intent: 'DELIVERY_INFO', customerDetails: details, senderId, originalMessage: text };\n  }\n  \n  return { intent: 'GREETING', senderId, originalMessage: text };\n}\n\nfunction extractProduct(text) {\n  if (text.includes('injektorve') || text.includes('40pcs')) return 'SET PER HEQJEN E INJEKTORVE - DIZNEVE 40PCS';\n  if (text.includes('14pcs')) return 'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES 14PCS';\n  if (text.includes('vag') || text.includes('7pcs')) return 'SET PER NXJERRJEN E DIZNEVE VAG TDI ME QEKIQ RRESHQITES 7PCS';\n  if (text.includes('dizneve')) return 'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES';\n  return null;\n}\n\nfunction parseDeliveryInfo(text) {\n  const parts = text.split(',').map(part => part.trim());\n  return {\n    name: parts[0] || null,\n    phone: parts[1] || null,\n    address: parts[2] || null,\n    city: parts[3] || 'Prishtine'\n  };\n}\n\nconst result = analyzeAlbanianMessage(message);\nreturn [result];"
+        "jsCode": "const input = $input.first().json;\n\n// Handle FB webhook verification\nif (input['hub.mode'] === 'subscribe' && input['hub.verify_token'] === 'albanian_bot_verify') {\n  return [{ challenge: input['hub.challenge'], isVerification: true }];\n}\n\n// Incoming message processing\nlet message = '';\nlet senderId = '';\ntry {\n  message = input.entry[0].messaging[0].message.text.toLowerCase();\n  senderId = input.entry[0].messaging[0].sender.id;\n} catch {\n  return [{ error: 'Invalid message format' }];\n}\n\n// Product intent detection\nconst priceKeywords = ['sa kushton', 'çmimi', 'kushton'];\nconst orderKeywords = ['dua të porosis', 'porosi'];\nconst confirmKeywords = ['po', 'dakord', 'pranoj'];\n\nfunction extractProduct(text) {\n  if (text.includes('injektorve') || text.includes('40pcs')) return 'SET PER HEQJEN E INJEKTORVE - DIZNEVE 40PCS';\n  if (text.includes('14pcs')) return 'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES 14PCS';\n  if (text.includes('vag') || text.includes('7pcs')) return 'SET PER NXJERRJEN E DIZNEVE VAG TDI ME QEKIQ RRESHQITES 7PCS';\n  if (text.includes('dizneve')) return 'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES';\n  return null;\n}\n\nlet intent = 'GREETING';\nif (priceKeywords.some(k => message.includes(k))) intent = 'PRICE_INQUIRY';\nelse if (orderKeywords.some(k => message.includes(k))) intent = 'ORDER_REQUEST';\nelse if (confirmKeywords.some(k => message.includes(k))) intent = 'CONFIRMATION';\n\nconst product = extractProduct(message);\n\nreturn [{ intent, product, senderId, isVerification: false }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        220,
-        0
-      ],
-      "id": "6f979608-26ae-48a7-b5c6-81337bd971db",
-      "name": "Albanian Processing"
+      "position": [220, 0],
+      "name": "Message Processing"
     },
     {
       "parameters": {
         "rules": {
           "values": [
             {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "leftValue": "intent ",
-                    "rightValue": "PRICE_INQUIRY",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    },
-                    "id": "b3a690f2-6c30-4046-aed1-1698f5520e13"
-                  }
-                ],
-                "combinator": "and"
-              }
+              "conditions": [
+                {
+                  "operation": "equals",
+                  "value": "PRICE_INQUIRY",
+                  "property": "intent"
+                }
+              ]
             },
             {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "b0020dfe-b3e8-41bf-850e-373fcfd35c80",
-                    "leftValue": "intent",
-                    "rightValue": "ORDER_REQUEST",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
+              "conditions": [
+                {
+                  "operation": "equals",
+                  "value": "ORDER_REQUEST",
+                  "property": "intent"
+                }
+              ]
             },
             {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "9baf7061-2fe1-4223-9f68-7d64159fc379",
-                    "leftValue": "intent",
-                    "rightValue": "CONFIRMATION",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 2
-                },
-                "conditions": [
-                  {
-                    "id": "6ad3e610-dfe0-4c49-9b4d-f03c04b5f7ea",
-                    "leftValue": "intent",
-                    "rightValue": "DELIVERY_INFO",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              }
+              "conditions": [
+                {
+                  "operation": "equals",
+                  "value": "CONFIRMATION",
+                  "property": "intent"
+                }
+              ]
             }
           ]
-        },
-        "options": {
-          "fallbackOutput": "none"
         }
       },
       "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
-      "position": [
-        440,
-        0
-      ],
-      "id": "c6f10b46-cb66-48c5-bde5-5cefdda2c124",
-      "name": "Switch"
+      "typeVersion": 1,
+      "position": [440, 0],
+      "name": "Switch Intent"
     },
     {
       "parameters": {
-        "jsCode": "const product = $input.first().json.product;\nconst senderId = $input.first().json.senderId;\n\nconst prices = {\n  'SET PER HEQJEN E INJEKTORVE - DIZNEVE 40PCS': 110,\n  'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES 14PCS': 60,\n  'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES': 35,\n  'SET PER NXJERRJEN E DIZNEVE VAG TDI ME QEKIQ RRESHQITES 7PCS': 40\n};\n\nconst price = prices[product];\nconst response = `Çmimi për ${product} është ${price}€. A dëshironi të porosisni?`;\n\nreturn [{ senderId, message: response, product, price }];"
+        "jsCode": "const prices = {\n  'SET PER HEQJEN E INJEKTORVE - DIZNEVE 40PCS': 110,\n  'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES 14PCS': 60,\n  'SET PER NXJERRJEN E DIZNEVE ME QEKIQ RRESHQITES': 35,\n  'SET PER NXJERRJEN E DIZNEVE VAG TDI ME QEKIQ RRESHQITES 7PCS': 40\n};\n\nconst product = $input.first().json.product;\nconst senderId = $input.first().json.senderId;\nconst price = prices[product] || 'në dispozicion';\nconst message = `Çmimi për ${product || 'produktin'} është ${price}€. A dëshironi të porosisni?`;\nreturn [{ senderId, message }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        660,
-        -240
-      ],
-      "id": "1fe2c095-81a1-4742-9cc2-e3d91c64ef65",
-      "name": "Price Response "
+      "position": [660, -100],
+      "name": "Price Response"
     },
     {
       "parameters": {
-        "jsCode": "const senderId = $input.first().json.senderId;\nconst response = \"A dëshironi ta porosisni? Ju lutemi konfirmoni me 'Po'\";\n\nreturn [{\n  senderId: senderId,\n  message: response\n}];"
+        "jsCode": "const senderId = $input.first().json.senderId;\nconst message = \"A dëshironi ta porosisni? Ju lutemi konfirmoni me 'Po'\";\nreturn [{ senderId, message }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        660,
-        -100
-      ],
-      "id": "ec556835-21fd-4e81-871d-5fff7a39aac1",
+      "position": [660, 0],
       "name": "Order Response"
     },
     {
       "parameters": {
-        "jsCode": "const senderId = $input.first().json.senderId;\nconst response = `Ju lutemi jepni të dhënat tuaja në këtë format:\nEmri, Telefoni, Adresa, Qyteti\n\nShembull: Agron Berisha, 044123456, Rruga Dardania 15, Prishtine`;\n\nreturn [{\n  senderId: senderId,\n  message: response\n}];"
+        "jsCode": "const senderId = $input.first().json.senderId;\nconst message = \"Faleminderit! Porosia juaj është pranuar.\";\nreturn [{ senderId, message }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        660,
-        40
-      ],
-      "id": "5b2e4a17-2a34-48f4-9096-00789db880a5",
-      "name": "Confirmation Response"
+      "position": [660, 100],
+      "name": "Confirm Response"
     },
     {
       "parameters": {
-        "jsCode": "const customerDetails = $input.first().json.customerDetails;\nconst senderId = $input.first().json.senderId;\n\n// Validate required fields\nif (!customerDetails.name || !customerDetails.phone || !customerDetails.address) {\n  return [{\n    senderId: senderId,\n    message: \"Të dhënat nuk janë të plota. Ju lutemi jepni: Emri, Telefoni, Adresa, Qyteti\",\n    action: 'request_info'\n  }];\n}\n\n// Prepare for order creation\nreturn [{\n  senderId: senderId,\n  customerDetails: customerDetails,\n  message: \"Duke u regjistruar porosia...\",\n  action: 'create_order'\n}];"
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/me/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"recipient\": {\"id\": $json[\"senderId\"]}, \"message\": {\"text\": $json[\"message\"]}}"
       },
-      "type": "n8n-nodes-base.code",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 2,
-      "position": [
-        660,
-        220
-      ],
-      "id": "1fb58f14-33dd-4148-98b9-10a77ae5d10e",
-      "name": "Delivery Response"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://graph.facebook.com/v18.0/me/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "=\"text\": \"{{ $('Price Response').first().json.message }}\"",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        820,
-        -240
-      ],
-      "id": "a91ad170-4a0c-4c04-9d70-2def70b0e364",
-      "name": "HTTP Request",
+      "position": [880, 0],
+      "name": "Send FB Message",
       "credentials": {
         "httpBearerAuth": {
-          "id": "Xvy9HyboQH41noBf",
-          "name": "Bearer Auth account"
+          "id": "Xvy9HyboQH41noBf"
         }
       }
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://graph.facebook.com/v18.0/me/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "=\"text\": \"{{ $('Order Response').first().json.message }}\"",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        880,
-        -100
-      ],
-      "id": "8d14baf6-4038-40d6-912a-12a6382193d4",
-      "name": "HTTP Request1",
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "Xvy9HyboQH41noBf",
-          "name": "Bearer Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://graph.facebook.com/v18.0/me/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "=\"text\": \"{{ $('Confirmation').first().json.message }}\"",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        880,
-        40
-      ],
-      "id": "23339356-3eee-4a29-81d2-85f700d5ef83",
-      "name": "HTTP Request2",
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "Xvy9HyboQH41noBf",
-          "name": "Bearer Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://graph.facebook.com/v18.0/me/messages",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpBearerAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "=\"text\": \"{{ $('Delivery Response').first().json.message }}\"",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        880,
-        220
-      ],
-      "id": "f3e1d863-4572-41ab-9a92-84dd89bfd047",
-      "name": "HTTP Request3",
-      "credentials": {
-        "httpBearerAuth": {
-          "id": "Xvy9HyboQH41noBf",
-          "name": "Bearer Auth account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "numberInputs": 4
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [
-        1180,
-        -80
-      ],
-      "id": "dbf44eb3-efef-4525-a41a-de5b60766d23",
-      "name": "Merge"
     },
     {
       "parameters": {
         "respondWith": "text",
-        "responseBody": "={{ $('Albanian Processing').first().json.isVerification ? $('Albanian Processing').first().json.challenge : 'OK' }}",
-        "options": {}
+        "responseBody": "={{ $json.isVerification ? $json.challenge : 'OK' }}"
       },
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.4,
-      "position": [
-        1400,
-        -80
-      ],
-      "id": "bcabc9c3-e4ca-4db9-b0f0-0a9b45bc85fe",
+      "typeVersion": 1,
+      "position": [1100, 0],
       "name": "Respond to Webhook"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{ $json[\"isVerification\"] }}",
-              "operation": "isTrue"
-            }
-          ]
-        }
-      },
-      "name": "Check Verification",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        880,
-        -400
-      ],
-      "id": "if-verification"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{ $json[\"isVerification\"] }}",
-              "operation": "isTrue"
-            }
-          ]
-        }
-      },
-      "name": "Check Verification",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        880,
-        -400
-      ],
-      "id": "check-verification-node"
     }
   ],
-  "pinData": {},
   "connections": {
     "Webhook": {
+      "main": [[{"node": "Message Processing", "type": "main", "index": 0}]]
+    },
+    "Message Processing": {
       "main": [
         [
-          {
-            "node": "Albanian Processing",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Albanian Processing",
-            "type": "main",
-            "index": 0
-          }
+          {"node": "Respond to Webhook", "type": "main", "index": 0},
+          {"node": "Switch Intent", "type": "main", "index": 0}
         ]
       ]
     },
-    "Albanian Processing": {
+    "Switch Intent": {
       "main": [
-        [
-          {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Check Verification",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        [{"node": "Price Response", "type": "main", "index": 0}],
+        [{"node": "Order Response", "type": "main", "index": 1}],
+        [{"node": "Confirm Response", "type": "main", "index": 2}]
       ]
     },
-    "Switch": {
-      "main": [
-        [
-          {
-            "node": "Price Response ",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Order Response",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Confirmation Response",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Delivery Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Price Response ": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Price Response": {
+      "main": [[{"node": "Send FB Message", "type": "main", "index": 0}]]
     },
     "Order Response": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "Send FB Message", "type": "main", "index": 0}]]
     },
-    "Confirmation Response": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Confirm Response": {
+      "main": [[{"node": "Send FB Message", "type": "main", "index": 0}]]
     },
-    "Delivery Response": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request3",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request1": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "HTTP Request2": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 2
-          }
-        ]
-      ]
-    },
-    "HTTP Request3": {
-      "main": [
-        [
-          {
-            "node": "Merge",
-            "type": "main",
-            "index": 3
-          }
-        ]
-      ]
-    },
-    "Merge": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Verification": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
-      ]
+    "Send FB Message": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
     }
   },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "7bea96d0-1b9a-4264-a4bb-66b0519bc524",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "74e3f4bae3f951c51f22103830ec8a44d94b35a0fe62d18a2c910b8f65c71534"
-  },
-  "id": "NlUA65PTeHpPz4kL",
-  "tags": []
+  "active": true
 }
